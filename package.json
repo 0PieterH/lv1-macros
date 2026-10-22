@@ -12,6 +12,10 @@
     "start:web": "node server.mjs",
     "prepare:desktop": "node scripts/prepare-desktop.mjs",
     "package:win": "node scripts/package-windows.mjs",
+    "package:mac": "node scripts/package-macos.mjs",
+    "package:mac:arm64": "node scripts/package-macos.mjs arm64",
+    "package:mac:x64": "node scripts/package-macos.mjs x64",
+    "smoke:mac": "node scripts/smoke-macos.mjs",
     "test": "node --test test/*.test.mjs"
   },
   "devDependencies": { "electron": "45.0.0", "@electron/packager": "20.3.0" },

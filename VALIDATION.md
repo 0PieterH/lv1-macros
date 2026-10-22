@@ -17,3 +17,9 @@ The app defaults to the simulator and starts disarmed. Live connection informati
 - Both tests confirmed nodeIntegration=false, contextIsolation=true and sandbox=true for the renderer.
 - Desktop shutdown disarmed automation; the owned bridge exited, while the reused live bridge remained available.
 - The same 23 source regression tests passed after adding Electron support.
+
+## macOS configuration
+
+- Added arm64 and x64 packaging, an ICNS icon, native application/window menus, ad-hoc signing and signature verification on a Mac, symlink-preserving ZIP generation, and a macOS GitHub Actions workflow.
+- Build and smoke-test scripts pass JavaScript syntax checks on Windows. Shared engine/protocol tests remain available here.
+- No macOS build or native Mac smoke test has been executed in this Windows environment. The workflow is configured to execute a native simulator smoke test when run on GitHub's Mac runner; it must succeed before Mac runtime compatibility is claimed.

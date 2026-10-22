@@ -1,5 +1,7 @@
 # Windows desktop app
 
+For Apple Silicon and Intel macOS builds, see [MACOS.md](MACOS.md).
+
 Build with `npm run package:win`. The portable Windows build is written to `dist/LV1 Macro Studio-win32-x64/`. Run **LV1 Macro Studio.exe**. Keep the executable and its supporting files together. Node.js and Companion are not required on the computer running the packaged app.
 
 ## Behaviour

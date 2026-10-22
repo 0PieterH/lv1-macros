@@ -22,6 +22,10 @@ npm run package:win
 
 Output: `dist/LV1 Macro Studio-win32-x64/`. Distribute the complete folder, including its supporting files. Run `npm test` for the 23 automated tests. Network tests bind only to loopback.
 
+## macOS
+
+Apple Silicon and Intel builds are configured. On a Mac, run `npm run package:mac` to produce both `.app` ZIPs. The included **macOS desktop builds** GitHub Actions workflow can build them after this source is uploaded. See [MACOS.md](MACOS.md) for build instructions, testing, local-network access and development-signing limitations. Mac builds have not been executed on the Windows development machine.
+
 The repository contains source, icons, dependency lockfile, tests and documentation. Dependencies, generated runtimes, packaged binaries, logs and personal saved macro data are excluded. Desktop builds always start with the example macro library.
 
 ## Run

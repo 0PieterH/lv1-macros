@@ -1,0 +1,16 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import {spawn} from 'node:child_process';
+import assert from 'node:assert/strict';
+import {fileURLToPath} from 'node:url';
+if(process.platform!=='darwin')throw Error('The macOS executable smoke test must run on a Mac.');
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),arch=process.arch;
+const binary=path.join(root,'dist',`LV1 Macro Studio-darwin-${arch}`,'LV1 Macro Studio.app','Contents','MacOS','LV1 Macro Studio');
+if(!fs.existsSync(binary))throw Error('Build the '+arch+' app first with npm run package:mac');
+const dataDir=fs.mkdtempSync(path.join(os.tmpdir(),'lv1-macos-smoke-'));
+const code=await new Promise((resolve,reject)=>{const child=spawn(binary,['--smoke-test','--own-bridge'],{env:{...process.env,LV1_DESKTOP_DATA_DIR:dataDir},stdio:'inherit'});const timer=setTimeout(()=>{child.kill('SIGTERM');reject(Error('macOS smoke test timed out'));},45000);child.once('error',e=>{clearTimeout(timer);reject(e);});child.once('exit',code=>{clearTimeout(timer);resolve(code);});});
+assert.equal(code,0);const result=JSON.parse(fs.readFileSync(path.join(dataDir,'smoke-result.json'),'utf8'));
+assert.equal(result.ok,true);assert.equal(result.ownedBridge,true);assert.equal(result.mode,'simulator');assert.equal(result.nodeIntegration,false);assert.equal(result.contextIsolation,true);assert.equal(result.sandbox,true);
+fs.copyFileSync(path.join(dataDir,'smoke-result.json'),path.join(root,'dist',`smoke-macos-${arch}.json`));
+console.log('Native macOS '+arch+' smoke test passed. The other architecture is packaged and signature-verified but not executed on this runner.');

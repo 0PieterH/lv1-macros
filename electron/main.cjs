@@ -3,6 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const http=require('node:http');
 app.setName('LV1 Macro Studio');
+const isMac=process.platform==='darwin';
 if(process.env.LV1_DESKTOP_DATA_DIR){fs.mkdirSync(process.env.LV1_DESKTOP_DATA_DIR,{recursive:true});app.setPath('userData',process.env.LV1_DESKTOP_DATA_DIR);}
 const smoke=process.argv.includes('--smoke-test');
 let window,bridge,origin,quitting=false,logStream;
@@ -11,6 +12,7 @@ process.on('uncaughtException',error=>{try{fs.appendFileSync(path.join(app.getPa
 const lock=app.requestSingleInstanceLock();
 if(!lock){app.quit();}else{
  app.on('second-instance',()=>{if(window){if(window.isMinimized())window.restore();window.show();window.focus();}});
+ app.on('activate',()=>{if(window&&!window.isDestroyed()){window.show();window.focus();}});
  app.whenReady().then(launch).catch(error=>{log('STARTUP ERROR '+error.stack);if(!smoke)dialog.showErrorBox('LV1 Macro Studio could not start',error.message);app.exit(1);});
  app.on('window-all-closed',()=>app.quit());
  app.on('before-quit',event=>{if(quitting)return;event.preventDefault();quitting=true;void closeBridge().finally(()=>{logStream?.end();app.quit();});});
@@ -47,9 +49,11 @@ async function launch(){
  window.on('unresponsive',()=>log('Window reported unresponsive'));window.webContents.on('render-process-gone',(_event,details)=>log('Renderer exit: '+details.reason));
  window.once('ready-to-show',()=>{log('Desktop window ready');if(!smoke)window.show();});
  Menu.setApplicationMenu(Menu.buildFromTemplate([
-  {label:'File',submenu:[{label:'Open desktop data folder',click:()=>shell.openPath(app.getPath('userData'))},{type:'separator'},{label:'Stop all automation',accelerator:'CmdOrCtrl+Shift+.',click:()=>request(origin+'/api/stop','POST',{}).catch(e=>log(e.message))},{role:'quit'}]},
+  ...(isMac?[{role:'appMenu'}]:[]),
+  {label:'File',submenu:[{label:'Open desktop data folder',click:()=>shell.openPath(app.getPath('userData'))},{type:'separator'},{label:'Stop all automation',accelerator:'CmdOrCtrl+Shift+.',click:()=>request(origin+'/api/stop','POST',{}).catch(e=>log(e.message))},{role:isMac?'close':'quit'}]},
   {label:'Edit',submenu:[{role:'undo'},{role:'redo'},{type:'separator'},{role:'cut'},{role:'copy'},{role:'paste'},{role:'selectAll'}]},
   {label:'View',submenu:[{role:'reload'},{role:'resetZoom'},{role:'zoomIn'},{role:'zoomOut'},{role:'togglefullscreen'}]},
+  ...(isMac?[{role:'windowMenu'}]:[]),
   {label:'Help',submenu:[{label:'About LV1 Macro Studio',click:()=>dialog.showMessageBox(window,{type:'info',title:'LV1 Macro Studio',message:'LV1 Macro Studio 1.0',detail:'Local Waves LV1 control and conditional macros.\nClosing the desktop window disarms automation.\nMacro engine and mixer bridge run locally.\nCommunity software; not affiliated with Waves or DiGiCo.'})}]}
  ]));
  await window.loadURL(origin);const state=await request(origin+'/api/state');log('Loaded desktop UI · '+state.state.mode+' · '+state.state.status+' · armed='+state.armed);
