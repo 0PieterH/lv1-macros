@@ -1,0 +1,6 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {decodeMIDI,matchesMIDI,validateMappings} from '../lib/midi.mjs';
+const row={id:'test',device:'controller',enabled:true,type:'cc',channel:1,number:7,value:127,macro:'macro'};
+test('MIDI decoding ignores releases and accepts program zero',()=>{assert.deepEqual(decodeMIDI([0xc0,0]),{type:'pc',channel:1,number:0,value:null});assert.equal(decodeMIDI([0x90,60,0]),null);assert.equal(decodeMIDI([0x80,60,100]),null);assert.equal(decodeMIDI([0xf8]),null);assert.equal(decodeMIDI([0x9f,60,100]).channel,16);});
+test('MIDI mappings filter device, channel and release values',()=>{const event={type:'cc',channel:1,number:7,value:127,device:'controller'};assert.equal(matchesMIDI(row,event),true);for(const patch of [{device:'other'},{channel:2},{value:0},{number:8}])assert.equal(matchesMIDI(row,{...event,...patch}),false);assert.equal(matchesMIDI({...row,channel:0,device:'*',value:null},{...event,channel:16,device:'other',value:0}),true);assert.equal(matchesMIDI({...row,enabled:false},event),false);});
+test('MIDI mapping validation rejects bad ranges and duplicates',()=>{assert.deepEqual(validateMappings([row]),[row]);for(const patch of [{channel:17},{number:-1},{value:128},{macro:''}])assert.throws(()=>validateMappings([{...row,...patch}]));assert.throws(()=>validateMappings([row,row]));});
