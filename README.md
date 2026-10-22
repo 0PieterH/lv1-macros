@@ -90,3 +90,9 @@ The tests cover threshold/rearm semantics, baselining, unknown state, ANY/ALL, c
 ## Attribution
 
 `lib/osc.ts` and `lib/zdns-discover.ts` are adapted from the user-supplied companion-module-waves-lv1, copyright 2026 Miguel Lourenço, MIT. The accompanying LICENSE is retained. The transport and action mapping follow that project's documented protocol. Community software; not affiliated with Waves or DiGiCo.
+
+## Credits
+
+Pieter HUTAPEA
+
+Protocol portions: Miguel Lourenço (2026), MIT; see LICENSE.
