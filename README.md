@@ -102,3 +102,15 @@ Protocol portions: Miguel Lourenço (2026), MIT; see LICENSE.
 Open Connections → Open MIDI mapping, then Enable MIDI input. Add a mapping, choose its target macro and press Learn. Play a note, send a Program Change or move a CC control; the device, channel, number and value are captured without firing macros. Save mappings to apply. Arm automation to run mapped macros.
 
 Use channel 0 for any channel, All inputs for any device, and a blank value for any value. Note Off and zero-velocity Note On are ignored. For CC buttons, matching a specific press value avoids triggering again on release. Mappings persist in midi-mappings.json in the desktop data folder. Enable MIDI after each app launch; incoming messages continue working when the mapping window is closed. The original /midi/CH/PC external event addresses remain supported.
+
+## Talkback On / Off
+
+Assign an LV1 User Key to Talkback On/Off, then choose the “Talkback On / Off” action and the key number (1–16). State On presses TALK and keeps it active after the macro completes. State Off releases it; use the same key number. Stop, disarm, app shutdown, and switching connections also attempt release. Destination routing remains the separate “Talkback destination to aux” action.
+
+The User Key command still needs hardware verification. If the network drops, remote release cannot be confirmed: check TALK on the LV1. Existing saved hold actions remain supported for compatibility but are hidden from the new action picker.
+
+## Incremental channel naming
+
+Choose “Rename channels · numbered sequence” in a macro action or Mixer & simulator → Manual action. Choose the starting channel and set Through channel to the last channel number (1-based, inclusive; 0 means only the selected channel). Set prefix, starting number, increment, minimum number digits and optional suffix. The preview updates before anything is sent.
+
+Example: Channel Input 5, Through 8, prefix “Vocal ”, start 1, increment 1, digits 2 produces Vocal 01, Vocal 02, Vocal 03, Vocal 04 on inputs 5–8. Numbering is independent of the channel number. Save and fire the macro, or Execute action from Manual action. Automation must be armed. Simulator mode changes only simulator names; live mode sends /Set/TrackName. Names must be at most 100 characters and generated numbers must not exceed 999999.

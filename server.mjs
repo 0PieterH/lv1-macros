@@ -74,7 +74,7 @@ const server=http.createServer(async(req,res)=>{
   if(url.pathname==='/api/state')return json(res,200,snapshot());
   if(url.pathname==='/api/catalog')return json(res,200,{actions:ACTIONS,properties:PROPERTIES,groups:GROUPS});
   if(url.pathname==='/api/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive'});res.write('data: '+JSON.stringify(snapshot())+'\n\n');clients.add(res);const keep=setInterval(()=>res.write(': keepalive\n\n'),15000);req.on('close',()=>{clients.delete(res);clearInterval(keep);});return;}
-  const files={'/':'index.html','/app.js':'app.js','/midi-ui.js':'midi-ui.js','/midi.mjs':'../lib/midi.mjs','/style.css':'style.css','/catalog.mjs':'../lib/catalog.mjs'};const file=files[url.pathname];if(!file)return json(res,404,{error:'Not found'});
+  const files={'/':'index.html','/app.js':'app.js','/midi-ui.js':'midi-ui.js','/midi.mjs':'../lib/midi.mjs','/style.css':'style.css','/catalog.mjs':'../lib/catalog.mjs','/naming.mjs':'../lib/naming.mjs'};const file=files[url.pathname];if(!file)return json(res,404,{error:'Not found'});
   const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'");
   res.writeHead(200,{'Content-Type':types[path.extname(file)],'Cache-Control':'no-store'});fs.createReadStream(path.join(root,'public',file)).pipe(res);
