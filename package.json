@@ -1,0 +1,19 @@
+{
+  "name": "lv1-macro-studio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.cjs",
+  "productName": "LV1 Macro Studio",
+  "description": "Local Waves LV1 macro editor, rule engine and simulator",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "npm run prepare:desktop && electron .",
+    "start:web": "node server.mjs",
+    "prepare:desktop": "node scripts/prepare-desktop.mjs",
+    "package:win": "node scripts/package-windows.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": { "electron": "45.0.0", "@electron/packager": "20.3.0" },
+  "license": "MIT"
+}
