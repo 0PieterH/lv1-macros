@@ -1,3 +1,4 @@
+import {createMIDIWindow} from '/midi-ui.js';
 import { ACTIONS,PROPERTIES,GROUPS,defaultAction } from '/catalog.mjs';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -109,9 +110,12 @@ document.addEventListener('change',task(async e=>{
   }
 }));
 document.addEventListener('keydown',task(async e=>{if(e.repeat||['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;const matches=library.filter(m=>m.enabled&&m.trigger==='keyboard'&&m.key===e.key);if(!matches.length)return;e.preventDefault();for(const m of matches)await fire(m.id,'keyboard');}));
-async function startMIDI(){if(!navigator.requestMIDIAccess)throw Error('Web MIDI is unavailable. Open this local app in Chrome or Edge.');const access=await navigator.requestMIDIAccess({sysex:false});const bind=()=>{for(const input of access.inputs.values())input.onmidimessage=e=>{const [status,program]=e.data;if((status&0xf0)===0xc0)api('event',{address:`/midi/${(status&15)+1}/${program}`}).catch(e=>toast(e.message,true));};$('#midi-status').textContent=`${access.inputs.size} MIDI input${access.inputs.size===1?'':'s'} connected`;};access.onstatechange=bind;bind();}
+
 function receive(data){snapshot=data;if(!dirty){library=structuredClone(data.macros);if(!library.some(m=>m.id===selected))selected=library[0]?.id||'';}statusUpdate();renderCards();if(page==='events')renderActivity();if(page==='mixer'){if(mixerTopology!==Object.keys(data.state.tracks).join(',')+'|'+data.state.mode)renderMixer();else updateMixerValues();}$('#discovery-list').innerHTML=data.discovery.map((d,i)=>`<button class="discovered" data-discovered="${i}">${esc(d.host||'LV1')} · ${esc(d.addresses[0]||d.source)}:${esc(d.port)}</button>`).join('');}
 try{receive(await api('state'));renderEditor();const events=new EventSource('/api/events');events.onmessage=e=>receive(JSON.parse(e.data));events.onerror=()=>{$('#footer-state').textContent='Bridge reconnecting…';};}catch(e){toast('Could not reach the local bridge: '+e.message,true);}
 
 
 
+
+const midiWindow=createMIDIWindow({api,toast,getMacros:()=>library,isDirty:()=>dirty});
+async function startMIDI(){await midiWindow.open();}

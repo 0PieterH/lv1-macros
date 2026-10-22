@@ -11,6 +11,6 @@ if(!fs.existsSync(binary))throw Error('Build the '+arch+' app first with npm run
 const dataDir=fs.mkdtempSync(path.join(os.tmpdir(),'lv1-macos-smoke-'));
 const code=await new Promise((resolve,reject)=>{const child=spawn(binary,['--smoke-test','--own-bridge'],{env:{...process.env,LV1_DESKTOP_DATA_DIR:dataDir},stdio:'inherit'});const timer=setTimeout(()=>{child.kill('SIGTERM');reject(Error('macOS smoke test timed out'));},45000);child.once('error',e=>{clearTimeout(timer);reject(e);});child.once('exit',code=>{clearTimeout(timer);resolve(code);});});
 assert.equal(code,0);const result=JSON.parse(fs.readFileSync(path.join(dataDir,'smoke-result.json'),'utf8'));
-assert.equal(result.ok,true);assert.equal(result.ownedBridge,true);assert.equal(result.mode,'simulator');assert.equal(result.nodeIntegration,false);assert.equal(result.contextIsolation,true);assert.equal(result.sandbox,true);
+assert.equal(result.ok,true);assert.equal(result.midi.ok,true);assert.equal(result.ownedBridge,true);assert.equal(result.mode,'simulator');assert.equal(result.nodeIntegration,false);assert.equal(result.contextIsolation,true);assert.equal(result.sandbox,true);
 fs.copyFileSync(path.join(dataDir,'smoke-result.json'),path.join(root,'dist',`smoke-macos-${arch}.json`));
 console.log('Native macOS '+arch+' smoke test passed. The other architecture is packaged and signature-verified but not executed on this runner.');

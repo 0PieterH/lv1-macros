@@ -1,3 +1,4 @@
+import {decodeMIDI,validateMappings,matchesMIDI} from './lib/midi.mjs';
 import http from 'node:http';
 import dgram from 'node:dgram';
 import fs from 'node:fs';
@@ -21,6 +22,9 @@ engine.on('change',schedule);mixer.on('change',()=>{engine.changed();schedule();
 mixer.on('discovery',entries=>{discovery=entries;schedule();});
 let initial=seedMacros();if(fs.existsSync(savePath)){try{initial=validateMacros(JSON.parse(fs.readFileSync(savePath,'utf8')));}catch(e){console.error('Saved macros could not be read:',e.message);log('error','Saved macro file is invalid; examples loaded. Original file preserved.');}}
 engine.setMacros(initial);
+const midiPath=path.join(dataDir,'midi-mappings.json');let midiMappings=[];
+try{if(fs.existsSync(midiPath))midiMappings=validateMappings(JSON.parse(fs.readFileSync(midiPath,'utf8')));}catch(e){log('error','MIDI mappings could not be loaded: '+e.message);}
+
 function persist(macros){validateMacros(macros);const temp=savePath+'.tmp';fs.writeFileSync(temp,JSON.stringify(macros,null,2));fs.renameSync(temp,savePath);engine.setMacros(macros);schedule();}
 function json(res,status,value){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));}
 async function body(req){let text='';for await(const chunk of req){text+=chunk;if(text.length>1024*1024)throw Error('Request too large');}return text?JSON.parse(text):{};}
@@ -29,10 +33,13 @@ const server=http.createServer(async(req,res)=>{
   // Loopback binding, Host checks and same-origin writes prevent websites from driving the mixer.
   if(!/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(req.headers.host||''))return json(res,403,{error:'Local host required'});
   res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','no-referrer');
+  if(req.method==='GET'&&url.pathname==='/api/midi-mappings')return json(res,200,{mappings:midiMappings});
   if(req.method==='POST'){
     if(req.headers.origin&&req.headers.origin!==`http://${req.headers.host}`)return json(res,403,{error:'Same-origin request required'});
     if(!(req.headers['content-type']||'').startsWith('application/json'))return json(res,415,{error:'Use application/json'});
     try{const b=await body(req);switch(url.pathname){
+      case '/api/midi-mappings':{validateMappings(b.mappings);const temp=midiPath+'.tmp';fs.writeFileSync(temp,JSON.stringify(b.mappings,null,2));fs.renameSync(temp,midiPath);midiMappings=b.mappings;return json(res,200,{ok:true});}
+      case '/api/midi':{const event=decodeMIDI(b.data||[]);if(!event||typeof b.device!=='string')throw Error('Invalid MIDI message');event.device=b.device;if(engine.armed){const targets=new Set(midiMappings.filter(r=>matchesMIDI(r,event)).map(r=>r.macro));if(event.type==='pc'){const address=`/midi/${event.channel}/${event.number}`;for(const m of engine.macros)if(m.trigger==='external'&&m.address===address)targets.add(m.id);}for(const id of targets){const m=engine.macros.find(m=>m.id===id);if(m?.enabled&&!engine.running.has(id))void engine.fire(id,'MIDI').catch(()=>{});}}return json(res,200,{ok:true});}
       case '/api/macros':persist(b.macros);log('system','Macro library saved');return json(res,200,{ok:true});
       case '/api/arm':if(b.armed)mixer.assertReady();else mixer.cancelFades();engine.arm(b.armed===true);return json(res,200,{ok:true});
       case '/api/stop':engine.arm(false);mixer.cancelFades();return json(res,200,{ok:true});
@@ -67,7 +74,7 @@ const server=http.createServer(async(req,res)=>{
   if(url.pathname==='/api/state')return json(res,200,snapshot());
   if(url.pathname==='/api/catalog')return json(res,200,{actions:ACTIONS,properties:PROPERTIES,groups:GROUPS});
   if(url.pathname==='/api/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive'});res.write('data: '+JSON.stringify(snapshot())+'\n\n');clients.add(res);const keep=setInterval(()=>res.write(': keepalive\n\n'),15000);req.on('close',()=>{clients.delete(res);clearInterval(keep);});return;}
-  const files={'/':'index.html','/app.js':'app.js','/style.css':'style.css','/catalog.mjs':'../lib/catalog.mjs'};const file=files[url.pathname];if(!file)return json(res,404,{error:'Not found'});
+  const files={'/':'index.html','/app.js':'app.js','/midi-ui.js':'midi-ui.js','/midi.mjs':'../lib/midi.mjs','/style.css':'style.css','/catalog.mjs':'../lib/catalog.mjs'};const file=files[url.pathname];if(!file)return json(res,404,{error:'Not found'});
   const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
   res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'");
   res.writeHead(200,{'Content-Type':types[path.extname(file)],'Cache-Control':'no-store'});fs.createReadStream(path.join(root,'public',file)).pipe(res);

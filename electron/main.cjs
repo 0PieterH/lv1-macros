@@ -13,7 +13,7 @@ const lock=app.requestSingleInstanceLock();
 if(!lock){app.quit();}else{
  app.on('second-instance',()=>{if(window){if(window.isMinimized())window.restore();window.show();window.focus();}});
  app.on('activate',()=>{if(window&&!window.isDestroyed()){window.show();window.focus();}});
- app.whenReady().then(launch).catch(error=>{log('STARTUP ERROR '+error.stack);if(!smoke)dialog.showErrorBox('LV1 Macro Studio could not start',error.message);app.exit(1);});
+ app.whenReady().then(launch).catch(error=>{log('STARTUP ERROR '+(error.stack||String(error)));if(!smoke)dialog.showErrorBox('LV1 Macro Studio could not start',error.message);app.exit(1);});
  app.on('window-all-closed',()=>app.quit());
  app.on('before-quit',event=>{if(quitting)return;event.preventDefault();quitting=true;void closeBridge().finally(()=>{logStream?.end();app.quit();});});
 }
@@ -43,8 +43,8 @@ async function launch(){
  window=new BrowserWindow({width:1440,height:960,minWidth:780,minHeight:600,show:false,title:'LV1 Macro Studio',backgroundColor:'#111413',icon:path.join(__dirname,'icon.png'),webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,webSecurity:true,spellcheck:false}});
  window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
  window.webContents.on('will-navigate',(event,url)=>{if(!localPage(url))event.preventDefault();});
- window.webContents.session.setPermissionRequestHandler((contents,permission,callback,details)=>{callback(contents===window?.webContents&&localPage(details.requestingUrl||contents.getURL())&&permission==='midi');});
- window.webContents.session.setPermissionCheckHandler((contents,permission,requestingOrigin)=>contents===window?.webContents&&requestingOrigin===origin&&permission==='midi');
+ window.webContents.session.setPermissionRequestHandler((contents,permission,callback,details)=>{callback(contents===window?.webContents&&localPage(details.requestingUrl||contents.getURL())&&['midi','midiSysex'].includes(permission));});
+ window.webContents.session.setPermissionCheckHandler((contents,permission,requestingOrigin)=>contents===window?.webContents&&localPage(requestingOrigin)&&['midi','midiSysex'].includes(permission));
  window.webContents.on('console-message',(_event,level,message)=>{if(level>=2)log('RENDERER '+message);});
  window.on('unresponsive',()=>log('Window reported unresponsive'));window.webContents.on('render-process-gone',(_event,details)=>log('Renderer exit: '+details.reason));
  window.once('ready-to-show',()=>{log('Desktop window ready');if(!smoke)window.show();});
@@ -57,7 +57,7 @@ async function launch(){
   {label:'Help',submenu:[{label:'About LV1 Macro Studio',click:()=>dialog.showMessageBox(window,{type:'info',title:'LV1 Macro Studio',message:'LV1 Macro Studio 1.0',detail:'Local Waves LV1 control and conditional macros.\n\nCredits: Pieter HUTAPEA\nProtocol contributions: Miguel Lourenço\n\nClosing the desktop window disarms automation.\nMacro engine and mixer bridge run locally.\nCommunity software; not affiliated with Waves or DiGiCo.'})}]}
  ]));
  await window.loadURL(origin);const state=await request(origin+'/api/state');log('Loaded desktop UI · '+state.state.mode+' · '+state.state.status+' · armed='+state.armed);
- if(smoke){log('SMOKE PASS: Electron window loaded, bridge state API responded, isolated renderer enabled');fs.writeFileSync(path.join(app.getPath('userData'),'smoke-result.json'),JSON.stringify({ok:true,electron:process.versions.electron,node:process.versions.node,url:origin,mode:state.state.mode,status:state.state.status,ownedBridge:!!bridge,nodeIntegration:window.webContents.getLastWebPreferences().nodeIntegration,contextIsolation:window.webContents.getLastWebPreferences().contextIsolation,sandbox:window.webContents.getLastWebPreferences().sandbox},null,2));app.quit();}
+ if(smoke){const midi=await window.webContents.executeJavaScript("navigator.requestMIDIAccess({sysex:false}).then(access=>({ok:true,inputs:access.inputs.size}))");if(!midi.ok)throw Error('MIDI access failed');log('MIDI access granted; inputs='+midi.inputs);log('SMOKE PASS: Electron window loaded, bridge state API responded, isolated renderer enabled');fs.writeFileSync(path.join(app.getPath('userData'),'smoke-result.json'),JSON.stringify({ok:true,midi,electron:process.versions.electron,node:process.versions.node,url:origin,mode:state.state.mode,status:state.state.status,ownedBridge:!!bridge,nodeIntegration:window.webContents.getLastWebPreferences().nodeIntegration,contextIsolation:window.webContents.getLastWebPreferences().contextIsolation,sandbox:window.webContents.getLastWebPreferences().sandbox},null,2));app.quit();}
 }
 async function closeBridge(){
  if(origin){try{await request(origin+'/api/stop','POST',{});log('Automation disarmed on desktop exit');}catch(e){log('Disarm request: '+e.message);}}

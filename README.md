@@ -96,3 +96,9 @@ The tests cover threshold/rearm semantics, baselining, unknown state, ANY/ALL, c
 Pieter HUTAPEA
 
 Protocol portions: Miguel Lourenço (2026), MIT; see LICENSE.
+
+## MIDI mapping window
+
+Open Connections → Open MIDI mapping, then Enable MIDI input. Add a mapping, choose its target macro and press Learn. Play a note, send a Program Change or move a CC control; the device, channel, number and value are captured without firing macros. Save mappings to apply. Arm automation to run mapped macros.
+
+Use channel 0 for any channel, All inputs for any device, and a blank value for any value. Note Off and zero-velocity Note On are ignored. For CC buttons, matching a specific press value avoids triggering again on release. Mappings persist in midi-mappings.json in the desktop data folder. Enable MIDI after each app launch; incoming messages continue working when the mapping window is closed. The original /midi/CH/PC external event addresses remain supported.
